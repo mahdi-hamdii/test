@@ -1,37 +1,61 @@
-# XLD Logging Setup – README
+# XLD Monitoring and Logging Setup
 
-This guide walks you through installing and configuring centralized logging on an **XLD instance** using the provided `setup-logging.sh` script.
+This guide explains how to install and configure both centralized **monitoring** and **logging** on an XLD instance.
 
----
+## Contents
 
-## What this script does
-
-The script automates:
-
-- Log forwarding from the XLD log file
-- Systemd service setup to mirror logs into `/var/log/deployit/deployit.log`
-- Log rotation for clean disk usage
-- TLS-based `rsyslog` forwarding to a central log collector (dev or prod)
+- [1. Prerequisites](#1-prerequisites)
+- [2. Setup Monitoring (collectd)](#2-setup-monitoring-collectd)
+- [3. Setup Logging (rsyslog)](#3-setup-logging-rsyslog)
 
 ---
 
-## Requirements
+## 1. Prerequisites
 
-- This script **must be run as root**
-- You'll need **temporary sudo rights** on the instance
-- Works on systems using `yum` (RHEL-based)
+- You must run the setup scripts **as root**
+- Begin by obtaining **temporary sudo rights**
+- These scripts are designed for RHEL-based systems using `yum`
+- Create folder named `xld-observability`
+## 2. Setup Monitoring (collectd)
+The monitoring setup uses collectd to gather system metrics and forward them to Logstash.
 
+### Steps:
+#### 1. Create the monitoring script
+```bash
+cd xld-observability
+vi setup-collectd.sh
+```
+#### 2. Paste the setup-collectd.sh script into the file.
+#### 3. Ensure the following variables are set correctly in the script:
+```bash
+VM_NAME="xldeploy-prod-00"
+LOGSTASH_HOST="logstash-collector.world.socgen"
+LOGSTASH_PORT="5044"
+```
+#### 4. Copy collectd.conf.j2 file inside xld-observability folder
+#### 5. Run the script
+```bash
+chmod +x setup-collectd.sh
+./setup-collectd.sh
+```
+This will:
+
+- Install collectd with epel enabled
+- Render the configuration
+- Deploy it to /etc/collectd.conf
+- Restart the collectd service
 ---
+## 3. Setup Logging (rsyslog)
+The logging setup forwards XLD logs over TLS using rsyslog and also manages log rotation.
 
-## How to Use
+### Steps:
 
 ### 1. Gain root access
 
 If you're a regular user:
 
 ```bash
-sudo -v      # Refresh sudo credentials
-sudo su -    # Become root
+sudo su
 ```
 ### 2. Create the setup script
 ```bash
@@ -62,7 +86,9 @@ This will:
 - Install TLS cert and configure rsyslog
 - Restart rsyslog to activate forwarding
 
-## After Running this script:
-The logging setup will be complete. Logs from XLD will be:
-- Stored and rotated in /var/log/deployit/deployit.log
-- Forwarded securely to the central log collector over TLS
+## After Running these scripts:
+After Running Both Scripts
+- Your XLD instance will be configured to:
+- Monitor system metrics via collectd
+- Forward logs securely using rsyslog
+- Rotate logs cleanly to manage disk usage
