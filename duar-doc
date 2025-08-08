@@ -1,0 +1,141 @@
+Here’s the README in markdown format so you can copy it directly:
+
+```markdown
+# DUAR Airflow Process
+
+## Introduction
+
+DUAR (**Detailed User Access Review**) is a process used to generate, send, and back up user recertification files. These files contain all the necessary information (e.g., global ID, email, login) required by the UCT team to forward to managers for access review.
+
+The DSP DIAM-AR automation process is composed of several main parts:
+
+- **Extraction**: Contact all necessary applications, retrieve data, and generate a CSV file. The process also logs inconsistencies such as missing users.
+- **Connectors**: Interfaces that connect to the specific tool or application for which DUAR is performed.
+- **Ingestion**: Transfers the extracted CSV data to the DIAM-AR team for consolidation and sends it to UCT (go/duar).
+- **Archive**: Stores DUAR data and logs in an object storage bucket.
+- **Automation**: Orchestrates the process. With Airflow, this replaces the old Jenkins-based execution.
+
+---
+
+## Prerequisites
+
+Before running the DUAR process in Airflow, the following steps must be completed:
+
+1. **Follow the Extraction Documentation**  
+   Complete all steps described in the [DSP DUAR Extraction documentation](LINK_TO_EXTRACTION_DOC).  
+
+2. **Create the Connector**  
+   Develop a connector for the target tool and place it in:
+```
+
+duar-airflow/utils/connectors
+
+```
+Follow the [DSP DUAR Connector README](LINK_TO_CONNECTOR_DOC) for details.
+
+3. **Follow the Ingestion Documentation**  
+Complete all steps described in the [DSP DUAR Ingestion documentation](LINK_TO_INGESTION_DOC).
+
+4. **Follow the Archive Documentation**  
+Complete all steps described in the [DSP DUAR Archive documentation](LINK_TO_ARCHIVE_DOC).
+
+---
+
+## Required Resources
+
+- **myVault Namespace**  
+Contains:
+- Extraction config file (for the extraction step)
+- Ingestion config file (for the ingestion step)
+
+- **Object Storage**  
+Stores the DUAR extract files sent to DIAMAR.
+
+---
+
+## Airflow Configuration
+
+Once the prerequisites are complete, configure Airflow as follows:
+
+### 1. Create Vault Connection
+Create a connection in Airflow of type **Vault**.  
+Name format:
+```
+
+{trigram}-duar-{app\_name}-approle-credentials
+
+````
+**Fields to fill:**
+- **Description**: Free text
+- **Host**: Vault URL
+- **Login**: App role ID
+- **Password**: App role secret ID
+- **Extra**: JSON containing:
+  ```json
+  { "kv_engine": 2 }
+````
+
+### 2. Create AWS S3 Connection
+
+Create a connection in Airflow of type **AWS**.
+Name format:
+
+```
+{trigram}-duar-{app_name}-s3-access-keys
+```
+
+**Fields to fill:**
+
+* **AWS Access Key ID**
+* **AWS Secret Access Key**
+* **Extra**: JSON containing:
+
+  ```json
+  {
+    "region": "FILL_REGION",
+    "s3_endpoint": "FILL_ENDPOINT",
+    "s3_bucket": "FILL_BUCKET_NAME"
+  }
+  ```
+
+### 3. Update Airflow Variable `duar_platforms`
+
+Edit the `duar_platforms` variable in Airflow and add a new JSON element:
+
+```json
+{
+  "platform_name": "FILL PLATFORM NAME",
+  "vault_conn_id": "FILL NAME OF CONN CREATED",
+  "vault_namespace": "FILL NAMESPACE VAULT",
+  "vault_extraction_secret_path": "FILL EXTRACTION PATH", 
+  "vault_ingestion_secret_path": "FILL INGESTION PATH",
+  "s3_access_keys": "FILL NAME OF CONN CREATED"
+}
+```
+
+> **Note**:
+>
+> * `vault_extraction_secret_path` is usually: `extraction/duar.json`
+> * `vault_ingestion_secret_path` is usually: `ingestion/duar.json`
+
+---
+
+## Deployment Notes
+
+* If the connector used to fetch user information from the tool already exists, DUAR is ready to run after these steps.
+* If a new connector was recently added, **deploy a new version of the artifact** before running DUAR for the new platform.
+* Once a new entry is added to `duar_platforms`, a DAG is automatically created in Airflow for that platform.
+
+---
+
+## Airflow Instances
+
+| Environment     | URL                                  |
+| --------------- | ------------------------------------ |
+| **Development** | [Dev Airflow](LINK_TO_DEV_AIRFLOW)   |
+| **Production**  | [Prod Airflow](LINK_TO_PROD_AIRFLOW) |
+
+```
+
+Do you want me to now **replace all the placeholder `LINK_TO_...` with the real documentation links** from your screenshots so it’s ready to publish?
+```
